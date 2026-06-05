@@ -1,0 +1,6 @@
+{
+  "name": "Curriculum Syllabus Generator",
+  "description": "An interactive AI-powered syllabus and curriculum builder that creates detailed semester breakdowns, course schedules, textbooks, topics, and progress trackers, with professional print-ready PDF export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
