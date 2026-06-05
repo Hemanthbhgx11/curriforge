@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Curriculum Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f8fafc; 
+        }
+        .spinner { 
+            border: 3px solid rgba(255,255,255,0.3); 
+            border-radius: 50%; 
+            border-top-color: #fff; 
+            animation: spin 1s ease-in-out infinite; 
+            width: 20px; 
+            height: 20px; 
+            display: inline-block; 
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Hide UI elements when printing to PDF */
+        @media print {
+            body { background-color: white; }
+            .no-print { display: none !important; }
+            #results-container { border: none; box-shadow: none; padding: 0; }
+            .print-break { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <!-- Header Section -->
+    <header class="bg-indigo-600 text-white p-6 shadow-md no-print">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <h1 class="text-2xl font-bold flex items-center">
+                <i class="fa-solid fa-graduation-cap mr-3"></i> EduGen AI
+            </h1>
+            <p class="text-indigo-200 text-sm hidden md:block">Instant Curriculum Architecture powered by Gemini</p>
+        </div>
+    </header>
+
+    <div class="max-w-6xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
+        
+        <!-- Input Form Section (Left Column) -->
+        <div class="col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-fit no-print">
+            <h2 class="text-xl font-semibold mb-6 text-slate-900 border-b pb-3">Curriculum Parameters</h2>
+            <form id="curriculum-form" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Target Skill / Subject</label>
+                    <input type="text" id="skill" required placeholder="e.g., Data Science, Embedded Systems" class="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-colors">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Proficiency Level</label>
+                    <select id="level" class="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-colors">
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Advanced">Advanced</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Semesters</label>
+                        <input type="number" id="semesters" min="1" max="8" value="2" class="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Hrs/Week</label>
+                        <input type="number" id="hours" min="1" max="40" value="10" class="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-colors">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Industry Focus</label>
+                    <input type="text" id="industry" required placeholder="e.g., Healthcare, FinTech, Web3" class="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-colors">
+                </div>
+                <button type="submit" id="generate-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-200 flex justify-center items-center mt-4">
+                    <span id="btn-text">Generate Syllabus</span>
+                    <span id="btn-spinner" class="spinner ml-2 hidden"></span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Output Visualization Section (Right Column) -->
+        <div class="col-span-1 lg:col-span-2">
+            
+            <!-- Actions Toolbar (Hidden initially) -->
+            <div id="actions-toolbar" class="hidden flex justify-between items-center mb-4 no-print bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <p class="text-sm text-green-600 font-medium"><i class="fa-solid fa-check-circle mr-1"></i> Generation Complete</p>
+                <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center">
+                    <i class="fa-solid fa-file-pdf mr-2"></i> Export to PDF
+                </button>
+            </div>
+
+            <!-- Content Area -->
+            <div id="results-container" class="bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-slate-200 min-h-[500px]">
+                
+                <!-- Empty State -->
+                <div id="empty-state" class="h-full flex flex-col items-center justify-center text-slate-400 py-20">
+                    <div class="bg-slate-100 p-6 rounded-full mb-4">
+                        <i class="fa-solid fa-layer-group text-4xl text-slate-300"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-slate-600">No Curriculum Generated Yet</h3>
+                    <p class="text-sm mt-2 text-center max-w-sm">Fill out the parameters on the left and click generate to instantly design a structured syllabus using Groq AI.</p>
+                </div>
+
+                <!-- Dynamic Content Will Go Here -->
+                <div id="curriculum-content" class="hidden"></div>
+                
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const apiKey = ""; // Injected by the execution environment
+
+        // Exponential backoff for API calls
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            const delays = [1000, 2000, 4000, 8000, 16000];
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return await response.json();
+                } catch (error) {
+                    if (i === maxRetries - 1) throw error;
+                    await new Promise(resolve => setTimeout(resolve, delays[i]));
+                }
+            }
+        }
+
+        document.getElementById('curriculum-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btnText = document.getElementById('btn-text');
+            const btnSpinner = document.getElementById('btn-spinner');
+            const generateBtn = document.getElementById('generate-btn');
+            const emptyState = document.getElementById('empty-state');
+            const curriculumContent = document.getElementById('curriculum-content');
+            const actionsToolbar = document.getElementById('actions-toolbar');
+
+            // UI Loading State
+            generateBtn.disabled = true;
+            generateBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            btnText.textContent = 'Analyzing parameters...';
+            btnSpinner.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            curriculumContent.innerHTML = '';
+            curriculumContent.classList.remove('hidden');
+            actionsToolbar.classList.add('hidden');
+
+            // Form Data
+            const payload = {
+                skill: document.getElementById('skill').value,
+                level: document.getElementById('level').value,
+                semesters: parseInt(document.getElementById('semesters').value),
+                hours: parseInt(document.getElementById('hours').value),
+                industry: document.getElementById('industry').value
+            };
+
+            const systemPrompt = "You are an expert curriculum designer. Create a highly structured, realistic university-level curriculum. You MUST adhere exactly to the requested JSON schema to build a cohesive educational path.";
+            const userQuery = `Target Skill: ${payload.skill}\nLevel: ${payload.level}\nDuration: ${payload.semesters} semesters\nCommitment: ${payload.hours} hours/week\nIndustry Focus: ${payload.industry}`;
+
+            const requestBody = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            title: { type: "STRING", description: "Catchy title for the curriculum" },
+                            overview: { type: "STRING", description: "A 2 sentence summary of what the student will achieve" },
+                            semesters: {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        semester_number: { type: "INTEGER" },
+                                        theme: { type: "STRING", description: "Main theme of this semester" },
+                                        courses: {
+                                            type: "ARRAY",
+                                            items: {
+                                                type: "OBJECT",
+                                                properties: {
+                                                    course_name: { type: "STRING" },
+                                                    credits: { type: "INTEGER" },
+                                                    description: { type: "STRING", description: "2-sentence professional overview of course objectives" },
+                                                    topics: {
+                                                        type: "ARRAY",
+                                                        items: { type: "STRING" }
+                                                    }
+                                                },
+                                                required: ["course_name", "credits", "description", "topics"]
+                                            }
+                                        }
+                                    },
+                                    required: ["semester_number", "theme", "courses"]
+                                }
+                            }
+                        },
+                        required: ["title", "overview", "semesters"]
+                    }
+                }
+            };
+
+            try {
+                // Call Gemini API utilizing the injected native environment key
+                const model = "gemini-2.5-flash-preview-09-2025";
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                
+                const data = await fetchWithRetry(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!rawContent) {
+                    throw new Error('Invalid or empty response from Gemini API');
+                }
+                
+                const curriculumData = JSON.parse(rawContent);
+                renderCurriculum(curriculumData, payload);
+                actionsToolbar.classList.remove('hidden');
+
+            } catch (error) {
+                curriculumContent.innerHTML = `
+                    <div class="bg-red-50 border border-red-200 text-red-700 p-6 rounded-xl flex items-start">
+                        <i class="fa-solid fa-triangle-exclamation text-2xl mr-4 mt-1"></i>
+                        <div>
+                            <h3 class="font-bold text-lg">Generation Failed</h3>
+                            <p class="mt-1">${error.message || 'An error occurred during generation.'}</p>
+                            <p class="mt-2 text-sm text-red-500">Ensure your prompt parameters are clear and try again.</p>
+                        </div>
+                    </div>`;
+            } finally {
+                // Reset Button State
+                generateBtn.disabled = false;
+                generateBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                btnText.textContent = 'Generate Syllabus';
+                btnSpinner.classList.add('hidden');
+            }
+        });
+
+        function renderCurriculum(data, params) {
+            const container = document.getElementById('curriculum-content');
+            
+            // Render Header
+            let html = `
+                <div class="mb-8 border-b pb-6 print-break">
+                    <div class="flex justify-between items-start mb-4">
+                        <h1 class="text-3xl font-bold text-slate-900">${data.title || `${params.skill} Curriculum`}</h1>
+                        <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                            ${params.level}
+                        </span>
+                    </div>
+                    <p class="text-slate-600 text-lg mb-4">${data.overview || 'A comprehensive curriculum tailored to your goals.'}</p>
+                    <div class="flex flex-wrap gap-3 text-sm text-slate-500">
+                        <span class="flex items-center"><i class="fa-solid fa-calendar mr-2"></i> ${params.semesters} Semesters</span>
+                        <span class="flex items-center ml-4"><i class="fa-solid fa-clock mr-2"></i> ${params.hours} hrs/week</span>
+                        <span class="flex items-center ml-4"><i class="fa-solid fa-industry mr-2"></i> ${params.industry} Focus</span>
+                    </div>
+                </div>
+            `;
+
+            // Render Semesters
+            if(data.semesters && data.semesters.length > 0) {
+                data.semesters.forEach(sem => {
+                    html += `
+                        <div class="mb-10 print-break">
+                            <h2 class="text-2xl font-bold text-slate-800 mb-2 flex items-center">
+                                <span class="bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">
+                                    ${sem.semester_number}
+                                </span>
+                                Semester ${sem.semester_number}: <span class="text-indigo-600 ml-2 font-medium">${sem.theme || 'Core Modules'}</span>
+                            </h2>
+                            <div class="space-y-4 mt-4">
+                    `;
+
+                    // Render Courses
+                    if(sem.courses && sem.courses.length > 0) {
+                        sem.courses.forEach(course => {
+                            let topicsHtml = course.topics.map(t => `<span class="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded-md border border-slate-200">${t}</span>`).join('');
+                            
+                            html += `
+                                <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition duration-200">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h3 class="text-lg font-bold text-slate-900">${course.course_name}</h3>
+                                        <span class="text-sm font-semibold text-slate-500 bg-slate-50 px-2 py-1 rounded border border-slate-100">${course.credits} Credits</span>
+                                    </div>
+                                    <p class="text-slate-600 text-sm mb-4 leading-relaxed">${course.description}</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        ${topicsHtml}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    html += `</div></div>`;
+                });
+            } else {
+                html += `<p class="text-slate-500">No semester data could be generated.</p>`;
+            }
+
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
